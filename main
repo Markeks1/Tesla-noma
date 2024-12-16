@@ -2,161 +2,161 @@ using System;
 using System.Data.SQLite;
 using System.IO;
 
-namespace TeslaNomaPlatforma
+namespace TeslaRentalPlatform
 {
-    class Programma
+    class Program
     {
-        private static string datuBazesCels = "tesla_noma.db";
+        private static string databasePath = "tesla_rental.db";
 
         static void Main(string[] args)
         {
-            if (!File.Exists(datuBazesCels))
+            if (!File.Exists(databasePath))
             {
-                SQLiteConnection.CreateFile(datuBazesCels);
-                InicializetDatuBazi();
+                SQLiteConnection.CreateFile(databasePath);
+                InitializeDatabase();
             }
 
-            Console.WriteLine("Laipni lūdzam Tesla Nomas Platformā!");
+            Console.WriteLine("Welcome to the Tesla Rental Platform!");
         }
 
-        static void InicializetDatuBazi()
+        static void InitializeDatabase()
         {
-            using (var savienojums = new SQLiteConnection($"Data Source={datuBazesCels};Version=3;"))
+            using (var connection = new SQLiteConnection($"Data Source={databasePath};Version=3;"))
             {
-                savienojums.Open();
+                connection.Open();
 
-                string izveidotAutoTabulu = @"CREATE TABLE Automasinas (ID INTEGER PRIMARY KEY, Modelis TEXT NOT NULL, StundasLikme REAL NOT NULL, KmLikme REAL NOT NULL);";
-                IzpilditKomandu(izveidotAutoTabulu, savienojums);
+                string createCarsTable = @"CREATE TABLE Cars (ID INTEGER PRIMARY KEY, Model TEXT NOT NULL, HourlyRate REAL NOT NULL, KmRate REAL NOT NULL);";
+                ExecuteCommand(createCarsTable, connection);
 
-                string izveidotKlientuTabulu = @"CREATE TABLE Klienti (ID INTEGER PRIMARY KEY, Vards TEXT NOT NULL, Epasts TEXT NOT NULL);";
-                IzpilditKomandu(izveidotKlientuTabulu, savienojums);
+                string createClientsTable = @"CREATE TABLE Clients (ID INTEGER PRIMARY KEY, Name TEXT NOT NULL, Email TEXT NOT NULL);";
+                ExecuteCommand(createClientsTable, connection);
 
-                string izveidotNomuTabulu = @"CREATE TABLE Nomas (ID INTEGER PRIMARY KEY, KlientaID INTEGER NOT NULL, AutomasinasID INTEGER NOT NULL, SakasLaiks TEXT NOT NULL, BeiguLaiks TEXT, NobrauktieKm REAL, KopMaksa REAL, FOREIGN KEY(KlientaID) REFERENCES Klienti(ID), FOREIGN KEY(AutomasinasID) REFERENCES Automasinas(ID));";
-                IzpilditKomandu(izveidotNomuTabulu, savienojums);
+                string createRentalsTable = @"CREATE TABLE Rentals (ID INTEGER PRIMARY KEY, ClientID INTEGER NOT NULL, CarID INTEGER NOT NULL, StartTime TEXT NOT NULL, EndTime TEXT, DistanceKm REAL, TotalCost REAL, FOREIGN KEY(ClientID) REFERENCES Clients(ID), FOREIGN KEY(CarID) REFERENCES Cars(ID));";
+                ExecuteCommand(createRentalsTable, connection);
 
-                Console.WriteLine("Datu bāze veiksmīgi inicializēta.");
-            }
-        }
-
-        static void IzpilditKomandu(string komanda, SQLiteConnection savienojums)
-        {
-            using (var sqlKomanda = new SQLiteCommand(komanda, savienojums))
-            {
-                sqlKomanda.ExecuteNonQuery();
+                Console.WriteLine("Database initialized successfully.");
             }
         }
 
-        static void RegistretKlientu(string vards, string epasts)
+        static void ExecuteCommand(string command, SQLiteConnection connection)
         {
-            using (var savienojums = new SQLiteConnection($"Data Source={datuBazesCels};Version=3;"))
+            using (var sqlCommand = new SQLiteCommand(command, connection))
             {
-                savienojums.Open();
+                sqlCommand.ExecuteNonQuery();
+            }
+        }
 
-                string komanda = "INSERT INTO Klienti (Vards, Epasts) VALUES (@Vards, @Epasts);";
-                using (var sqlKomanda = new SQLiteCommand(komanda, savienojums))
+        static void RegisterClient(string name, string email)
+        {
+            using (var connection = new SQLiteConnection($"Data Source={databasePath};Version=3;"))
+            {
+                connection.Open();
+
+                string command = "INSERT INTO Clients (Name, Email) VALUES (@Name, @Email);";
+                using (var sqlCommand = new SQLiteCommand(command, connection))
                 {
-                    sqlKomanda.Parameters.AddWithValue("@Vards", vards);
-                    sqlKomanda.Parameters.AddWithValue("@Epasts", epasts);
-                    sqlKomanda.ExecuteNonQuery();
+                    sqlCommand.Parameters.AddWithValue("@Name", name);
+                    sqlCommand.Parameters.AddWithValue("@Email", email);
+                    sqlCommand.ExecuteNonQuery();
                 }
 
-                Console.WriteLine("Klients veiksmīgi reģistrēts.");
+                Console.WriteLine("Client registered successfully.");
             }
         }
 
-        static void PievienotAutomasinu(string modelis, double stundasLikme, double kmLikme)
+        static void AddCar(string model, double hourlyRate, double kmRate)
         {
-            using (var savienojums = new SQLiteConnection($"Data Source={datuBazesCels};Version=3;"))
+            using (var connection = new SQLiteConnection($"Data Source={databasePath};Version=3;"))
             {
-                savienojums.Open();
+                connection.Open();
 
-                string komanda = "INSERT INTO Automasinas (Modelis, StundasLikme, KmLikme) VALUES (@Modelis, @StundasLikme, @KmLikme);";
-                using (var sqlKomanda = new SQLiteCommand(komanda, savienojums))
+                string command = "INSERT INTO Cars (Model, HourlyRate, KmRate) VALUES (@Model, @HourlyRate, @KmRate);";
+                using (var sqlCommand = new SQLiteCommand(command, connection))
                 {
-                    sqlKomanda.Parameters.AddWithValue("@Modelis", modelis);
-                    sqlKomanda.Parameters.AddWithValue("@StundasLikme", stundasLikme);
-                    sqlKomanda.Parameters.AddWithValue("@KmLikme", kmLikme);
-                    sqlKomanda.ExecuteNonQuery();
+                    sqlCommand.Parameters.AddWithValue("@Model", model);
+                    sqlCommand.Parameters.AddWithValue("@HourlyRate", hourlyRate);
+                    sqlCommand.Parameters.AddWithValue("@KmRate", kmRate);
+                    sqlCommand.ExecuteNonQuery();
                 }
 
-                Console.WriteLine("Automašīna veiksmīgi pievienota.");
+                Console.WriteLine("Car added successfully.");
             }
         }
 
-        static void NomatAutomasinu(int klientaId, int automasinasId, DateTime sakasLaiks)
+        static void RentCar(int clientId, int carId, DateTime startTime)
         {
-            using (var savienojums = new SQLiteConnection($"Data Source={datuBazesCels};Version=3;"))
+            using (var connection = new SQLiteConnection($"Data Source={databasePath};Version=3;"))
             {
-                savienojums.Open();
+                connection.Open();
 
-                string komanda = "INSERT INTO Nomas (KlientaID, AutomasinasID, SakasLaiks) VALUES (@KlientaID, @AutomasinasID, @SakasLaiks);";
-                using (var sqlKomanda = new SQLiteCommand(komanda, savienojums))
+                string command = "INSERT INTO Rentals (ClientID, CarID, StartTime) VALUES (@ClientID, @CarID, @StartTime);";
+                using (var sqlCommand = new SQLiteCommand(command, connection))
                 {
-                    sqlKomanda.Parameters.AddWithValue("@KlientaID", klientaId);
-                    sqlKomanda.Parameters.AddWithValue("@AutomasinasID", automasinasId);
-                    sqlKomanda.Parameters.AddWithValue("@SakasLaiks", sakasLaiks.ToString("yyyy-MM-dd HH:mm:ss"));
-                    sqlKomanda.ExecuteNonQuery();
+                    sqlCommand.Parameters.AddWithValue("@ClientID", clientId);
+                    sqlCommand.Parameters.AddWithValue("@CarID", carId);
+                    sqlCommand.Parameters.AddWithValue("@StartTime", startTime.ToString("yyyy-MM-dd HH:mm:ss"));
+                    sqlCommand.ExecuteNonQuery();
                 }
 
-                Console.WriteLine("Automašīna veiksmīgi iznomāta.");
+                Console.WriteLine("Car rented successfully.");
             }
         }
 
-        static void PabeigtNomu(int nomasId, DateTime beiguLaiks, double nobrauktieKm)
+        static void CompleteRental(int rentalId, DateTime endTime, double distanceKm)
         {
-            using (var savienojums = new SQLiteConnection($"Data Source={datuBazesCels};Version=3;"))
+            using (var connection = new SQLiteConnection($"Data Source={databasePath};Version=3;"))
             {
-                savienojums.Open();
+                connection.Open();
 
-                string iegutDatus = "SELECT SakasLaiks, AutomasinasID FROM Nomas WHERE ID = @NomasID;";
-                double stundasLikme = 0, kmLikme = 0;
-                DateTime sakasLaiks = DateTime.Now;
-                using (var sqlKomanda = new SQLiteCommand(iegutDatus, savienojums))
+                string fetchData = "SELECT StartTime, CarID FROM Rentals WHERE ID = @RentalID;";
+                double hourlyRate = 0, kmRate = 0;
+                DateTime startTime = DateTime.Now;
+                using (var sqlCommand = new SQLiteCommand(fetchData, connection))
                 {
-                    sqlKomanda.Parameters.AddWithValue("@NomasID", nomasId);
-                    using (var lasitajs = sqlKomanda.ExecuteReader())
+                    sqlCommand.Parameters.AddWithValue("@RentalID", rentalId);
+                    using (var reader = sqlCommand.ExecuteReader())
                     {
-                        if (lasitajs.Read())
+                        if (reader.Read())
                         {
-                            sakasLaiks = DateTime.Parse(lasitajs["SakasLaiks"].ToString());
-                            int automasinasId = Convert.ToInt32(lasitajs["AutomasinasID"]);
+                            startTime = DateTime.Parse(reader["StartTime"].ToString());
+                            int carId = Convert.ToInt32(reader["CarID"]);
 
-                            string automasinasDati = "SELECT StundasLikme, KmLikme FROM Automasinas WHERE ID = @AutomasinasID;";
-                            using (var automasinasKomanda = new SQLiteCommand(automasinasDati, savienojums))
+                            string carData = "SELECT HourlyRate, KmRate FROM Cars WHERE ID = @CarID;";
+                            using (var carCommand = new SQLiteCommand(carData, connection))
                             {
-                                automasinasKomanda.Parameters.AddWithValue("@AutomasinasID", automasinasId);
-                                using (var automasinasLasitajs = automasinasKomanda.ExecuteReader())
+                                carCommand.Parameters.AddWithValue("@CarID", carId);
+                                using (var carReader = carCommand.ExecuteReader())
                                 {
-                                    if (automasinasLasitajs.Read())
+                                    if (carReader.Read())
                                     {
-                                        stundasLikme = Convert.ToDouble(automasinasLasitajs["StundasLikme"]);
-                                        kmLikme = Convert.ToDouble(automasinasLasitajs["KmLikme"]);
+                                        hourlyRate = Convert.ToDouble(carReader["HourlyRate"]);
+                                        kmRate = Convert.ToDouble(carReader["KmRate"]);
                                     }
                                 }
                             }
                         }
                         else
                         {
-                            Console.WriteLine("Noma nav atrasta.");
+                            Console.WriteLine("Rental not found.");
                             return;
                         }
                     }
                 }
 
-                double stundas = (beiguLaiks - sakasLaiks).TotalHours;
-                double kopMaksa = (stundas * stundasLikme) + (nobrauktieKm * kmLikme);
+                double hours = (endTime - startTime).TotalHours;
+                double totalCost = (hours * hourlyRate) + (distanceKm * kmRate);
 
-                string atjaunotNomu = "UPDATE Nomas SET BeiguLaiks = @BeiguLaiks, NobrauktieKm = @NobrauktieKm, KopMaksa = @KopMaksa WHERE ID = @NomasID;";
-                using (var atjaunotKomanda = new SQLiteCommand(atjaunotNomu, savienojums))
+                string updateRental = "UPDATE Rentals SET EndTime = @EndTime, DistanceKm = @DistanceKm, TotalCost = @TotalCost WHERE ID = @RentalID;";
+                using (var updateCommand = new SQLiteCommand(updateRental, connection))
                 {
-                    atjaunotKomanda.Parameters.AddWithValue("@BeiguLaiks", beiguLaiks.ToString("yyyy-MM-dd HH:mm:ss"));
-                    atjaunotKomanda.Parameters.AddWithValue("@NobrauktieKm", nobrauktieKm);
-                    atjaunotKomanda.Parameters.AddWithValue("@KopMaksa", kopMaksa);
-                    atjaunotKomanda.Parameters.AddWithValue("@NomasID", nomasId);
-                    atjaunotKomanda.ExecuteNonQuery();
+                    updateCommand.Parameters.AddWithValue("@EndTime", endTime.ToString("yyyy-MM-dd HH:mm:ss"));
+                    updateCommand.Parameters.AddWithValue("@DistanceKm", distanceKm);
+                    updateCommand.Parameters.AddWithValue("@TotalCost", totalCost);
+                    updateCommand.Parameters.AddWithValue("@RentalID", rentalId);
+                    updateCommand.ExecuteNonQuery();
                 }
 
-                Console.WriteLine($"Noma pabeigta. Kopējā maksa: {kopMaksa:F2} EUR.");
+                Console.WriteLine($"Rental completed. Total cost: {totalCost:F2} EUR.");
             }
         }
     }
